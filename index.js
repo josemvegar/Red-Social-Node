@@ -19,9 +19,16 @@ const port = 3900;
 app.use(cors());
 
 // Convertir body a un objeto js. Con esto se parsea siempre los datos que lleguen a que sean un objeto js
-app.use(express.json());
+app.use(express.json()); // Recibir datos con contente-type app/json
+app.use(express.urlencoded({extended:true})); // Toma los datos en formato urlencodes y los parsea a un objeto json.
 
 // Crear Rutas:
+const rutas_articulo = require("./rutas/articulo");
+
+// Cargando las rutas:
+app.use("/api", rutas_articulo)
+
+// RUTAS DE PRUEBA HARDCODEADAS
 app.get("/", (req, res) =>{
     
     // Asi para cuando puede ser cualquier cosa como incluso un html con comillas invertidas:
