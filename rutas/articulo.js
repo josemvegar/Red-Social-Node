@@ -15,5 +15,13 @@ router.get("/curso" , ArticuloController.curso);
 
 // Ruta Útil:
 router.post("/crear" , ArticuloController.crear);
+// Sin parametros:
+//router.get("/articulos" , ArticuloController.listar)
+// Con parámetros obligatorios:
+//router.get("/articulos/:ultimos" , ArticuloController.listar)
+// Con parámetros opcionales:
+router.get("/articulos/:ultimos?" , ArticuloController.listar)
+router.get("/articulo/:id" , ArticuloController.unArticulo);
+router.delete("/articulo/:id" , ArticuloController.borrar);
 
 module.exports = router;
