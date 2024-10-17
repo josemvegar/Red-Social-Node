@@ -23,5 +23,6 @@ router.post("/crear" , ArticuloController.crear);
 router.get("/articulos/:ultimos?" , ArticuloController.listar)
 router.get("/articulo/:id" , ArticuloController.unArticulo);
 router.delete("/articulo/:id" , ArticuloController.borrar);
+router.put("/articulo/:id" , ArticuloController.actualizar);
 
 module.exports = router;

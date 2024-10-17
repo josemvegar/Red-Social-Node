@@ -1,6 +1,4 @@
-// Requerimos la libreria validator para validar los datos.
-const validator = require("validator"); // Documentación: https://www.npmjs.com/package/validator
-
+const {validar} = require("../helpers/validar");
 const Articulo = require("../modelos/Articulo");
 
 const prueba = (req, res) =>{
@@ -33,29 +31,8 @@ const crear = (req, res) => {
     // Recoger los parámetros por post a guardar
     const parametros = req.body;
 
-    // Validar los datos
-    // Dentro de un try-catch porque esta librería es suceptible a errores.
-    try{
-
-        let validarTitulo= !validator.isEmpty(parametros.titulo) &&
-                            validator.isLength(parametros.titulo, {min: 5, max: 25});
-
-        /*let validarTitulo= !validator.isEmpty(parametros.titulo) &&
-                            validator.isLength(parametros.titulo, {min: 5, max: udefined});*/
-
-        let validarContenido= !validator.isEmpty(parametros.contenido);
-
-        if (!validarTitulo || !validarContenido){
-            throw new Error("No se ha validado la Información.");
-            
-        }
-
-    }catch{
-        return res.status(400).json({
-            status: "error",
-            mensaje:"Faltan datos por enviar."
-        });
-    };
+    // Validar Datos
+    validar(res, parametros);
 
     // Crear el objeto a guardar
     const articulo = new Articulo();
@@ -171,7 +148,7 @@ const unArticulo = (req, res) => {
     });
 };
 
-const borrar = (req, res) => {
+/*const borrar = (req, res) => {
 
     let id = req.params.id;
 
@@ -189,6 +166,73 @@ const borrar = (req, res) => {
         });
     });
 
+};*/
+
+const borrar = async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        const articulo = await Articulo.findOneAndDelete({ _id: id });
+
+        if (!articulo) {
+            return res.status(404).json({
+                status: "error",
+                mensaje: "Articulo no encontrado"
+            });
+        }
+
+        res.status(200).json({
+            status: "success",
+            articulo: articulo,
+            mensaje: "Articulo borrado"
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            mensaje: "Hubo un error al intentar borrar el articulo"
+        });
+    }
+};
+
+const actualizar = async (req, res) => {
+    try{
+        // Recoger el id a editar
+        let id = req.params.id;
+
+        // Recoger datos del body
+        let parametros = req.body;
+
+        // Buscar y validar datos
+        validar(res, parametros);
+
+        // Actualizar datos
+        //const articuloActualizado = await Articulo.findOneAndUpdate({_id: id}, req.body);
+        // Con ese "new: true" mostramos el objeto ya actualizado en la respuesta, ya que si no, muestra el anterior.
+        const articuloActualizado = await Articulo.findOneAndUpdate({_id: id}, parametros, {new: true});
+
+        if (!articuloActualizado){
+            return res.status(404).json({
+                status: "error",
+                mensaje: "No se ha encontrado el articulo " + id + "."
+            });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            articulo: articuloActualizado,
+            mensaje: "Articulo " + id + " actualizado."
+        });
+    }
+    catch (error) {
+        return res.status(500).json({
+            status: "error",
+            mensaje: "No se pudo actualizar el articulo."
+        });
+    }
+    
+
+
 };
 
 module.exports = {
@@ -197,5 +241,6 @@ module.exports = {
     crear,
     listar,
     unArticulo,
-    borrar
+    borrar,
+    actualizar
 };
