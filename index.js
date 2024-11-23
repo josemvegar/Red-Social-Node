@@ -24,9 +24,9 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 // Cargar conf rutas
-app.use("/api", userRoutes);
-app.use("/api", publicationRoutes);
-app.use("/api", followRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/publication", publicationRoutes);
+app.use("/api/follow", followRoutes);
 
 // Ruta de prueba
 app.get("/prueba" , (req, res) => {
