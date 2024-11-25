@@ -2,7 +2,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const { use } = require("../routes/user");
-const createToken = require("../services/jwt");
+const jwt = require("../services/jwt");
 
 // Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -115,7 +115,7 @@ const login = (req, res) => {
           }
 
           // Crear token
-          const token= createToken(user);
+          const token= jwt.createToken(user);
           //const token= false;
 
           // Devolver datos de usuario y Token JWT
@@ -140,9 +140,56 @@ const login = (req, res) => {
   }
 };
 
+const profile = async (req, res) => {
+  // Recibir el parámetro del id del usuario por la url
+  const id= req.params.id;
+
+  // Consulta para sacar los datos del usuario
+  if(!id){
+    return res.status(400).json({
+      status: "error",
+      message: "No has enviado el ID del usuario."
+    });
+  }
+  if(id.length != 24){
+    return res.status(400).json({
+      status: "error",
+      message: "ID de usuario inválido, éste debe ser de 24 caracteres."
+    });
+  }
+  try{
+    const userProfile = await User.findById(id).select({password:0, role:0}).exec();
+
+    if(!userProfile){
+      return res.status(404).json({
+        status: "error",
+        message: "El usuario no existe."
+      });
+    }
+
+    // POSTERIORMENTE: Devolver información de follows.
+    // Devolver resultado
+    return res.status(200).json({
+      status: "success",
+      user: userProfile
+    });
+
+  } catch(error){
+    return res.status(400).json({
+      status: "error",
+      message: "Hubo un error al buscar el perfil o el Usuario no existe."
+    });
+  }
+  
+
+
+
+};
+
 // Esportar acciones
 module.exports = {
   pruebaUser,
   register,
   login,
+  profile
 };

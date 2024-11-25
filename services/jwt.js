@@ -25,4 +25,7 @@ const createToken = (user) => {
 
 };
 
-module.exports= createToken;
+module.exports= {
+    createToken,
+    secret
+};
