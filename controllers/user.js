@@ -3,6 +3,7 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const { use } = require("../routes/user");
 const jwt = require("../services/jwt");
+const mongoosePagination = require("mongoose-pagination");
 
 // Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -106,8 +107,8 @@ const login = (req, res) => {
           });
         } else {
           // Comprobar su contraseña
-          let pwd= bcrypt.compareSync(params.password, user.password);
-          if (!pwd){
+          let pwd = bcrypt.compareSync(params.password, user.password);
+          if (!pwd) {
             return res.status(400).json({
               status: "Error",
               message: "Contraseña inválida.",
@@ -115,7 +116,7 @@ const login = (req, res) => {
           }
 
           // Crear token
-          const token= jwt.createToken(user);
+          const token = jwt.createToken(user);
           //const token= false;
 
           // Devolver datos de usuario y Token JWT
@@ -126,8 +127,8 @@ const login = (req, res) => {
               id: user._id,
               name: user.name,
               nick: user.nick,
-              token
-            }
+              token,
+            },
           });
         }
       })
@@ -142,28 +143,30 @@ const login = (req, res) => {
 
 const profile = async (req, res) => {
   // Recibir el parámetro del id del usuario por la url
-  const id= req.params.id;
+  const id = req.params.id;
 
   // Consulta para sacar los datos del usuario
-  if(!id){
+  if (!id) {
     return res.status(400).json({
       status: "error",
-      message: "No has enviado el ID del usuario."
+      message: "No has enviado el ID del usuario.",
     });
   }
-  if(id.length != 24){
+  if (id.length != 24) {
     return res.status(400).json({
       status: "error",
-      message: "ID de usuario inválido, éste debe ser de 24 caracteres."
+      message: "ID de usuario inválido, éste debe ser de 24 caracteres.",
     });
   }
-  try{
-    const userProfile = await User.findById(id).select({password:0, role:0}).exec();
+  try {
+    const userProfile = await User.findById(id)
+      .select({ password: 0, role: 0 })
+      .exec();
 
-    if(!userProfile){
+    if (!userProfile) {
       return res.status(404).json({
         status: "error",
-        message: "El usuario no existe."
+        message: "El usuario no existe.",
       });
     }
 
@@ -171,19 +174,76 @@ const profile = async (req, res) => {
     // Devolver resultado
     return res.status(200).json({
       status: "success",
-      user: userProfile
+      user: userProfile,
     });
-
-  } catch(error){
+  } catch (error) {
     return res.status(400).json({
       status: "error",
-      message: "Hubo un error al buscar el perfil o el Usuario no existe."
+      message: "Hubo un error al buscar el perfil o el Usuario no existe.",
     });
   }
-  
+};
 
+const list = async (req, res) => {
+  // Controlar en qué página estamos
+  let page = 1;
+  if (req.params.page) {
+    page = req.params.page;
+  }
 
+  page = parseInt(page);
 
+  // Consulta con mongoose pagination
+  let itemsPerPage = 5;
+
+  try {
+    let userList = await User.find().sort("_id").select({password: 0, role: 0}).paginate(page, itemsPerPage);
+    const totalUsers = await User.countDocuments();
+
+    if (!userList) {
+      return res.status(404).send({
+        status: "error",
+        message: "No hay usuarios para mostrar.",
+      });
+    }
+
+    // Devolver el resultado (Posteriormente info de Follows)
+    let baseUrl = req.originalUrl.replace(/\/\d+$/, '/'); 
+    let totalPages = Math.ceil(totalUsers/itemsPerPage)
+    let prev= page-1;
+    let next= page+1;
+
+    if(prev < 1){
+      prev= undefined;
+    }else{
+      if(prev > totalPages){
+        prev=totalPages;
+      }
+    }
+
+    if(next > totalPages){
+      next= undefined;
+    }
+
+    console.log(req);
+    return res.status(200).send({
+      status: "sucess",
+      userList,
+      page,
+      itemsPerPage,
+      total: totalUsers,
+      pages: totalPages,
+      prev: prev ? baseUrl+prev : undefined,
+      next: next ? baseUrl+next : undefined,
+      
+    });
+
+  } catch (error) {
+    return res.status(400).send({
+      status: "error",
+      message: "Hubo un error al mostrar los usuarios."
+    });
+  }
 };
 
 // Esportar acciones
@@ -191,5 +251,6 @@ module.exports = {
   pruebaUser,
   register,
   login,
-  profile
+  profile,
+  list,
 };

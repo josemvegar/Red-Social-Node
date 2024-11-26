@@ -23,7 +23,6 @@ exports.auth = (req, res, next) => {
     // Decodificar el token
     try{
         let payload = jwt.decode(token, secret);
-        console.log(payload)
 
         // Comprobar expiración.
         if(payload.exp <= moment().unix()){

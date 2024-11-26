@@ -28,15 +28,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/publication", publicationRoutes);
 app.use("/api/follow", followRoutes);
 
-// Ruta de prueba
-app.get("/prueba" , (req, res) => {
-    return res.status(200).json(
-        {
-            mensaje: "App iniciada"
-        }
-    )
-})
-
 // Poner el servidor a escuchar peticiones http
 app.listen(port, () => {
     console.log("Servidor de node corriendo en el puerto: " + port);
