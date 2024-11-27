@@ -197,7 +197,10 @@ const list = async (req, res) => {
   let itemsPerPage = 5;
 
   try {
-    let userList = await User.find().sort("_id").select({password: 0, role: 0}).paginate(page, itemsPerPage);
+    let userList = await User.find()
+      .sort("_id")
+      .select({ password: 0, role: 0 })
+      .paginate(page, itemsPerPage);
     const totalUsers = await User.countDocuments();
 
     if (!userList) {
@@ -208,21 +211,21 @@ const list = async (req, res) => {
     }
 
     // Devolver el resultado (Posteriormente info de Follows)
-    let baseUrl = req.originalUrl.replace(/\/\d+$/, '/'); 
-    let totalPages = Math.ceil(totalUsers/itemsPerPage)
-    let prev= page-1;
-    let next= page+1;
+    let baseUrl = req.originalUrl.replace(/\/\d+$/, "/");
+    let totalPages = Math.ceil(totalUsers / itemsPerPage);
+    let prev = page - 1;
+    let next = page + 1;
 
-    if(prev < 1){
-      prev= undefined;
-    }else{
-      if(prev > totalPages){
-        prev=totalPages;
+    if (prev < 1) {
+      prev = undefined;
+    } else {
+      if (prev > totalPages) {
+        prev = totalPages;
       }
     }
 
-    if(next > totalPages){
-      next= undefined;
+    if (next > totalPages) {
+      next = undefined;
     }
 
     console.log(req);
@@ -233,17 +236,105 @@ const list = async (req, res) => {
       itemsPerPage,
       total: totalUsers,
       pages: totalPages,
-      prev: prev ? baseUrl+prev : undefined,
-      next: next ? baseUrl+next : undefined,
-      
+      prev: prev ? baseUrl + prev : undefined,
+      next: next ? baseUrl + next : undefined,
     });
-
   } catch (error) {
     return res.status(400).send({
       status: "error",
-      message: "Hubo un error al mostrar los usuarios."
+      message: "Hubo un error al mostrar los usuarios.",
     });
   }
+};
+
+const update = async (req, res) => {
+  // Recoger la información del usuario a actualizar.
+  let userIdentity = req.user;
+  let userToUpdate = req.body;
+
+  // Eliminar campos sobrantes.
+  delete userToUpdate.iat;
+  delete userToUpdate.exp;
+  delete userToUpdate.role;
+  delete userToUpdate.imagen;
+
+  // Comprobar si el usuario existe
+  User.find({
+    $or: [
+      { email: userToUpdate.email.toLowerCase() },
+      { nick: userToUpdate.nick.toLowerCase() },
+    ],
+  })
+    .exec()
+    .then((userDuplicated) => {
+      let userIsset = false;
+      userDuplicated.forEach((user) => {
+        if (user && user._id != userIdentity.id) {
+          userIsset = true;
+        }
+      });
+
+      if (userIsset == true) {
+        return res.status(400).json({
+          status: "error",
+          message: "Ya hay un usuario registrado con estos datos.",
+        });
+      }
+
+      // Si llega cambio de contraseña, cifrarla
+      if (userToUpdate.password) {
+        /*bcrypt.hash(userToUpdate.password, 10, (err, pwd) => {
+          userToUpdate.password = pwd;
+        });*/
+
+        bcrypt
+          .hash(userToUpdate.password, 10)
+          .then((pwd) => {
+            userToUpdate.password = pwd;
+            console.log("Password hashed and assigned:", userToUpdate.password);
+
+            //Buscar y actualizar
+            User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true}).then( (userUpdated) => {
+              return res.status(200).send({
+                status: "sucess",
+                message: "Usuario actualizado.",
+                user: userUpdated
+              })
+            })
+              .catch ((error) => {
+                return res.status(400).json({
+                  status: "error",
+                  message: "Hubo un error al actualizar los datos.",
+                });
+              });
+
+          })
+          .catch((err) => {
+            console.error("Error hashing password:", err);
+          });
+      } else {
+        //Buscar y actualizar
+        User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true}).then( (userUpdated) => {
+          return res.status(200).send({
+            status: "sucess",
+            message: "Usuario actualizado.",
+            user: userUpdated
+          })
+        })
+          .catch ((error) => {
+            return res.status(400).json({
+              status: "error",
+              message: "Hubo un error al actualizar los datos.",
+            });
+          });
+      }
+    })
+    .catch((error) => {
+      return res.status(500).json({
+        status: "error",
+        message: "Error en la consulta de usuarios.",
+      });
+    });
 };
 
 // Esportar acciones
@@ -253,4 +344,5 @@ module.exports = {
   login,
   profile,
   list,
+  update,
 };

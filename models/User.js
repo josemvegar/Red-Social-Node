@@ -10,6 +10,7 @@ const UserSchema = Schema({
         type: String,
         required: true
     },
+    bio: String,
     email: {
         type: String,
         required: true
@@ -18,7 +19,7 @@ const UserSchema = Schema({
         type: String,
         default: "role_user"
     },
-    image: {
+    imagen: {
         type: String,
         default: "default.png"
     },
