@@ -291,7 +291,6 @@ const update = async (req, res) => {
           .hash(userToUpdate.password, 10)
           .then((pwd) => {
             userToUpdate.password = pwd;
-            console.log("Password hashed and assigned:", userToUpdate.password);
 
             //Buscar y actualizar
             User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true}).then( (userUpdated) => {
