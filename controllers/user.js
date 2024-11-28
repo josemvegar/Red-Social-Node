@@ -4,6 +4,8 @@ const bcrypt = require("bcrypt");
 const { use } = require("../routes/user");
 const jwt = require("../services/jwt");
 const mongoosePagination = require("mongoose-pagination");
+const fs = require("fs");
+const path = require("path");
 
 // Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -293,34 +295,35 @@ const update = async (req, res) => {
             userToUpdate.password = pwd;
 
             //Buscar y actualizar
-            User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true}).then( (userUpdated) => {
-              return res.status(200).send({
-                status: "sucess",
-                message: "Usuario actualizado.",
-                user: userUpdated
+            User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true })
+              .then((userUpdated) => {
+                return res.status(200).send({
+                  status: "sucess",
+                  message: "Usuario actualizado.",
+                  user: userUpdated,
+                });
               })
-            })
-              .catch ((error) => {
+              .catch((error) => {
                 return res.status(400).json({
                   status: "error",
                   message: "Hubo un error al actualizar los datos.",
                 });
               });
-
           })
           .catch((err) => {
             console.error("Error hashing password:", err);
           });
       } else {
         //Buscar y actualizar
-        User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true}).then( (userUpdated) => {
-          return res.status(200).send({
-            status: "sucess",
-            message: "Usuario actualizado.",
-            user: userUpdated
+        User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true })
+          .then((userUpdated) => {
+            return res.status(200).send({
+              status: "sucess",
+              message: "Usuario actualizado.",
+              user: userUpdated,
+            });
           })
-        })
-          .catch ((error) => {
+          .catch((error) => {
             return res.status(400).json({
               status: "error",
               message: "Hubo un error al actualizar los datos.",
@@ -336,6 +339,93 @@ const update = async (req, res) => {
     });
 };
 
+const upload = async (req, res) => {
+  // Recoger fichero de iamgen y comprobar que existe
+  if (!req.file && !req.files) {
+    return res.status(404).send({
+      status: "error",
+      message: "La petición no incluye la imagen.",
+    });
+  }
+
+  // Conseguir el nombre del archivo
+  let image = req.file.originalname;
+
+  //Sacar la extención del archivo
+  let imageSplit = image.split(".");
+  let extension = imageSplit[1];
+
+  // Comprobar la extención
+  if (
+    extension != "png" &&
+    extension != "jpg" &&
+    extension != "jpeg" &&
+    extension != "gif"
+  ) {
+    // Si no es correcta, se borra el archivo
+    const filePath = req.file.path;
+    const fileDeleted = fs.unlinkSync(filePath);
+
+    // Devolver respuesta negativa
+    return res.status(400).send({
+      status: "error",
+      message: "El archivo no es del formato correcto.",
+      extension,
+    });
+  }
+
+  // Si es correcta se guarda su nombre en la bd
+  const userUpdated = await User.findOneAndUpdate(
+    {_id: req.user.id},
+    { imagen: req.file.filename },
+    { new: true }
+  ).select({role: 0, password:0}).exec();
+  try {
+    if (!userUpdated) {
+      const filePath = req.file.path;
+      const fileDeleted = fs.unlinkSync(filePath);
+      return res.status(400).send({
+        status: "error",
+        message: "Error al actualizar avatar en la base de datos.",
+        extension,
+      });
+    }
+
+    // Devolver respuesta
+    return res.status(200).send({
+      status: "succes",
+      user: userUpdated
+    });
+  } catch {
+    const filePath = req.file.path;
+    const fileDeleted = fs.unlinkSync(filePath);
+    return res.status(400).send({
+      status: "error",
+      message: "Error al actualizar avatar en la base de datos."
+    });
+  }
+};
+
+const avatar = (req, res) => {
+  // Sacar el parametro de la url
+  const file = req.params.file;
+
+  // Montar el path de la imagen
+  const filePath = "./uploads/avatars/"+file;
+
+  // Comprobar que el archivo existe
+  fs.stat(filePath, (err, exists) => {
+    if(!exists){
+      return res.status(404).send({
+        status: "error",
+        message: "El archivo no existe."
+      });
+    }
+    // Devolver un archivo
+    return res.sendFile(path.resolve(filePath))
+  });
+};
+
 // Esportar acciones
 module.exports = {
   pruebaUser,
@@ -344,4 +434,6 @@ module.exports = {
   profile,
   list,
   update,
+  upload,
+  avatar
 };
