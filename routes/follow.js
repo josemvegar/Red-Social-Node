@@ -6,6 +6,7 @@ const auth = require("../middlewares/auth");
 // Definir rutas
 router.get("/prueba-follow", followController.pruebaFollow);
 router.post("/save", auth.auth, followController.save);
+router.delete("/unfollow/:id", auth.auth, followController.unFollow);
 
 // Exportar el router
 module.exports = router;
