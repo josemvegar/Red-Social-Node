@@ -1,6 +1,8 @@
 // Importar Modelo
 const Follow = require("../models/Follow");
 const User = require("../models/User");
+const mongoosePaginate = require("mongoose-pagination");
+const followService = require("../services/followService");
 
 // Acciones de prueba
 const pruebaFollow = (req, res) => {
@@ -113,13 +115,101 @@ const unFollow = async (req, res) => {
     }
 };
 
-// Listado de usuarios que estoy siguiendo
+// Listado de usuarios que cualquier usuario está siguiendo
+const following = async (req,res) => {
+    // Sacar id de usuario identificado
+    let userID= req.user.id;
 
-// Listado de usuarios que me siguen
+    // Comprobar que llega el id por parámetro de url
+    if(req.params.id) userID = req.params.id;
+
+    // Comprobar si me llegó la página, si no, página 1
+    let page= 1;
+    if(req.params.page) page = req.params.page;
+
+    // Cuantos usuarios por página
+    const itemsPerPage = 5;
+
+    // Find a follows, popular datos de usuarios, paginar con mongoose paginate
+    let follows= await Follow.find({user: userID}).populate("followed", "-password -role -__v").paginate(page, itemsPerPage);
+    const total = await Follow.countDocuments({ user: userID });
+
+    try{
+        
+        const totalPages= Math.ceil(total / itemsPerPage);
+        // Listado de usuarios de alguien que tambien me siguen a mi.
+        // Sacar un array de los usuarios que me siguen y los que sigo como usuiario identificado.
+        let followUserIds = await followService.followUserIds(req.user.id)
+
+        return res.status(200).send({
+            status: "success",
+            message: "Listado de usuarios que estoy siguiendo.",
+            follows,
+            total,
+            totalPages,
+            user_following: followUserIds.followingClean,
+            user_following_me: followUserIds.followersClean
+        });
+    }catch (error){
+        return res.status(400).send({
+            status: "error",
+            message: "Error al mostrar el listado.",
+            follows
+        });
+    }
+
+    
+};
+
+
+// Listado de usuarios que siguen a cualquiero otro usuario
+const followers = async (req,res) => {
+    // Sacar id de usuario identificado
+    let userID= req.user.id;
+
+    // Comprobar que llega el id por parámetro de url
+    if(req.params.id) userID = req.params.id;
+
+    // Comprobar si me llegó la página, si no, página 1
+    let page= 1;
+    if(req.params.page) page = req.params.page;
+
+    // Cuantos usuarios por página
+    const itemsPerPage = 5;
+
+    // Find a follows, popular datos de usuarios, paginar con mongoose paginate
+    let follows= await Follow.find({followed: userID}).populate("user", "-password -role -__v").paginate(page, itemsPerPage);
+    const total = await Follow.countDocuments({ followed: userID });
+
+    try{
+        
+        const totalPages= Math.ceil(total / itemsPerPage);
+        
+        let followUserIds = await followService.followUserIds(req.user.id)
+
+        return res.status(200).send({
+            status: "success",
+            message: "Listado de usuarios que me siguen.",
+            follows,
+            total,
+            totalPages,
+            user_following: followUserIds.followingClean,
+            user_following_me: followUserIds.followersClean
+        });
+    }catch (error){
+        return res.status(400).send({
+            status: "error",
+            message: "Error al mostrar el listado.",
+            follows
+        });
+    }
+};
 
 // Esportar acciones
 module.exports = {
     pruebaFollow,
     save,
-    unFollow
+    unFollow,
+    following,
+    followers
 };
