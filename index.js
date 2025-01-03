@@ -1,60 +1,34 @@
-// { conexion } asi para desestructurar el objeto y que venga la función de una vez.
-const { conexion } = require("./basedatos/conexion");
-// Requerimos express:
+// Importar dependencias
+const {connection} = require("./database/connection");
 const express = require("express");
-// Requerimos cors:
 const cors = require("cors");
+const userRoutes = require("./routes/user");
+const publicationRoutes = require("./routes/publication");
+const followRoutes = require("./routes/follow");
 
-// Inicializar App
-console.log("App de Nodejs Arrancada");
+// Mensaje de bienvenida
+console.log("API Node para red social arrancada.");
 
-// Conectar a la Base de Datos.
-conexion();
+// Conexión a la bd
+connection();
 
-// Crear la variable del  servidor node.
+// Crear Servidor de Node
 const app = express();
 const port = 3900;
 
-// Configurar el cors. (Para que se ejecute el cors antes de que se ejecute otra cosa como una ruta.)
+// Configurar el Cors
 app.use(cors());
 
-// Convertir body a un objeto js. Con esto se parsea siempre los datos que lleguen a que sean un objeto js
-app.use(express.json()); // Recibir datos con contente-type app/json
-app.use(express.urlencoded({extended:true})); // Toma los datos en formato urlencodes y los parsea a un objeto json.
+// Convertir los datos del body a objetos js
+app.use(express.json());
+app.use(express.urlencoded({extended: true}));
 
-// Crear Rutas:
-const rutas_articulo = require("./rutas/articulo");
+// Cargar conf rutas
+app.use("/api/user", userRoutes);
+app.use("/api/publication", publicationRoutes);
+app.use("/api/follow", followRoutes);
 
-// Cargando las rutas:
-app.use("/api", rutas_articulo)
-
-// RUTAS DE PRUEBA HARDCODEADAS
-app.get("/", (req, res) =>{
-    
-    // Asi para cuando puede ser cualquier cosa como incluso un html con comillas invertidas:
-    return res.status(200).send("<h1>Empezando a crear un API REST con NodeJS.</h1>");
-});
-
-app.get("/probando", (req, res) =>{
-    console.log("Se ha ejecutado el endpoint Probando")
-    // Asi para cuando puede ser cualquier cosa como incluso un html con comillas invertidas:
-    //return res.status(200).send("Probando las rutas con Node");
-
-    // Así para devolver un Json:
-    return res.status(200).json([{
-        curso: "Master en Node",
-        alumno: "José Vega",
-        url: "/probando"
-    },
-    {
-        curso: "Master en Node",
-        alumno: "José Vega",
-        url: "/probando"
-    }
-    ]);
-});
-
-// Crear el servidor y escuchar peticiones http.
-app.listen(port, () =>{
-    console.log("Servidor Corriendo en el puerto " + port)
+// Poner el servidor a escuchar peticiones http
+app.listen(port, () => {
+    console.log("Servidor de node corriendo en el puerto: " + port);
 });

@@ -1,6 +1,7 @@
 const Publication = require("../models/Publication");
 const fs = require("fs");
 const path = require("path");
+const followService = require("../services/followService");
 
 // Guardar Publicación
 const save = async (req, res) => {
@@ -176,7 +177,7 @@ const upload = async (req, res) => {
     return res.status(400).send({
       status: "error",
       message: "El archivo no es del formato correcto.",
-      extension: imageSplit[imageSplit.length-1],
+      extension: imageSplit[imageSplit.length - 1],
     });
   }
 
@@ -217,22 +218,74 @@ const media = (req, res) => {
   const file = req.params.file;
 
   // Montar el path de la imagen
-  const filePath = "./uploads/publications/"+file;
+  const filePath = "./uploads/publications/" + file;
 
   // Comprobar que el archivo existe
   fs.stat(filePath, (err, exists) => {
-    if(!exists){
+    if (!exists) {
       return res.status(404).send({
         status: "error",
-        message: "El archivo no existe."
+        message: "El archivo no existe.",
       });
     }
     // Devolver un archivo
-    return res.sendFile(path.resolve(filePath))
+    return res.sendFile(path.resolve(filePath));
   });
 };
 
 // Listar Todas las Publicaciones (FEED)
+
+const feed = async (req, res) => {
+  // Sacar la página actual
+  let page = 1;
+  if (req.params.page) {
+    page = req.params.page;
+  }
+
+  // Establecer número de elementos por página
+  let itemsPerPage = 5;
+
+  // Sacar un array de identificadores de usuarios a quien sigo como user identificado
+  try {
+    let myFollows = await followService.followUserIds(req.user.id);
+
+    // Find a publicaciones  usando IN, ordenar, popular usuario y paginar
+    const feed = await Publication.find({
+      user: myFollows.followingClean
+      // o
+      //user: {$in : myFollows.followingClean}
+    })
+    .sort("-created_at")
+    .populate("user", "-password -role -__v -email -crate_at")
+    .paginate(page, itemsPerPage);
+
+    let totalPublications= await Publication.find({user: {$in : myFollows.followingClean}});
+    let total = totalPublications.length;
+
+    if( total < 1){
+      return res.status(400).send({
+        status: "error",
+        message: "No hay publicaciones para mostrar.",
+      });
+    }
+
+    return res.status(200).send({
+      status: "success",
+      message: "Feed",
+      following : myFollows.followingClean,
+      feed,
+      page,
+      itemsPerPage,
+      total
+    });
+
+  } catch (error) {
+    return res.status(500).send({
+      status: "error",
+      message: "No se han listado las publicaciones del feed",
+    });
+  }
+};
 
 // Acciones de prueba
 const pruebaPublication = (req, res) => {
@@ -248,5 +301,5 @@ module.exports = {
   listUserPublications,
   upload,
   media,
-
+  feed,
 };
