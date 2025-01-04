@@ -23,7 +23,7 @@ router.get("/publication/:id", auth.auth, publicationController.getOnePublicatio
 router.delete("/delete/:id", auth.auth, publicationController.removePublication);
 router.get("/userlist/:id?/:page?", auth.auth, publicationController.listUserPublications);
 router.post("/upload/:id" , [auth.auth, uploads.single("file0")], publicationController.upload);
-router.get("/media/:file", auth.auth, publicationController.media);
+router.get("/media/:file", publicationController.media);
 router.get("/feed/:page?", auth.auth, publicationController.feed);
 
 // Exportar el router

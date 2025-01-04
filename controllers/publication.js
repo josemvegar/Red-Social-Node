@@ -114,7 +114,7 @@ const listUserPublications = async (req, res) => {
   // Find, Populate, ordenar, paginar
   const gettingPublications = await Publication.find({ user: userId })
     .sort("-created_at") // El - se coloca para que sea lo contrario.
-    .populate("user", "-password -role -__v")
+    .populate("user", "-password -role -__v -email")
     .paginate(page, itemsPerPage);
   const totalPublications = await Publication.find({ user: userId });
 

@@ -1,5 +1,6 @@
 // Importar Módulos i deendencias
 const User = require("../models/User");
+const Publications = require("../models/Publication");
 const bcrypt = require("bcrypt");
 const { use } = require("../routes/user");
 const jwt = require("../services/jwt");
@@ -7,6 +8,7 @@ const mongoosePagination = require("mongoose-pagination");
 const fs = require("fs");
 const path = require("path");
 const followService = require("../services/followService");
+const validate = require("../helpers/validate");
 
 // Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -25,6 +27,18 @@ const register = (req, res) => {
       message: "Faltan datos por enviar.",
     });
   } else {
+
+    // Validación avanzada
+    try{
+      validate(params);
+    }
+    catch(err){
+      return res.status(400).json({
+        status: "error",
+        message: "Validación avanzada no pasada.",
+      });
+    }
+
     console.log("Validación mínima pasada.");
 
     // Crear objeto de usuario con los datos recibidos.
@@ -324,6 +338,7 @@ const update = async (req, res) => {
             console.error("Error hashing password:", err);
           });
       } else {
+        delete userToUpdate.password;
         //Buscar y actualizar
         User.findByIdAndUpdate(userIdentity.id, userToUpdate, { new: true })
           .then((userUpdated) => {
@@ -436,6 +451,26 @@ const avatar = (req, res) => {
   });
 };
 
+const counters = async (req, res) => {
+
+  let userId = req.user.id;
+
+  if(req.params.id){
+    userId = req.params.id;
+  }
+
+  const  followingToCount = await followService.followUserIds(userId);
+  const publicationsCount = await Publications.countDocuments( {user: userId});
+
+  return res.status(200).send({
+    status: "success",
+    message: "Contador de seguidores, seguidos y publicaciones.",
+    following:followingToCount.followingClean.length,
+    followers:followingToCount.followersClean.length,
+    publications: publicationsCount
+  });
+};
+
 // Esportar acciones
 module.exports = {
   pruebaUser,
@@ -445,5 +480,6 @@ module.exports = {
   list,
   update,
   upload,
-  avatar
+  avatar,
+  counters
 };

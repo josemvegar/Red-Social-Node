@@ -25,7 +25,8 @@ router.get("/profile/:id?", auth.auth, userController.profile);
 router.get("/list/:page?", auth.auth, userController.list);
 router.put("/update/:id", auth.auth, userController.update);
 router.post("/upload", [auth.auth, uploads.single("avatar")], userController.upload);
-router.get("/avatar/:file", auth.auth, userController.avatar);
+router.get("/avatar/:file", userController.avatar);
+router.get("/counters/:id?", auth.auth, userController.counters);
 
 // Exportar el router
 module.exports = router;
